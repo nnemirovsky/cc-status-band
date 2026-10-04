@@ -1,0 +1,34 @@
+{
+  "name": "status-band",
+  "version": "0.1.0",
+  "description": "A framed status band above the Claude Code prompt: git, model, effort, context and the branch's PR review state, as a function-hooks mod",
+  "author": {
+    "name": "Nikita Nemirovsky",
+    "url": "https://github.com/nnemirovsky"
+  },
+  "homepage": "https://github.com/nnemirovsky/cc-status-band",
+  "repository": "https://github.com/nnemirovsky/cc-status-band",
+  "documentationUrl": "https://github.com/nnemirovsky/cc-status-band#readme",
+  "supportUrl": "https://github.com/nnemirovsky/cc-status-band/issues",
+  "license": "MIT",
+  "keywords": [
+    "statusline",
+    "status-line",
+    "footer",
+    "pull-request",
+    "github",
+    "git",
+    "mod",
+    "function-hooks"
+  ],
+  "privacyPolicyUrl": "https://github.com/nnemirovsky/cc-status-band/blob/main/PRIVACY.md",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "nerdFont": {
+      "type": "boolean",
+      "title": "Nerd Font glyphs",
+      "description": "Draw the PR and CI marks as GitHub octicons from a Nerd Font instead of plain Unicode",
+      "default": false
+    }
+  }
+}
