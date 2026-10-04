@@ -4,7 +4,9 @@ Opinionated framed status band for Claude Code with git, model, context, and the
 branch's PR review state. It takes the place of a command status line and tidies
 the hint line under the prompt.
 
-![Status Band above the Claude Code prompt](assets/screenshot.png)
+![Status Band while the PR's checks run](assets/ci-running.png)
+
+![Status Band once the PR is ready to merge](assets/ready-to-merge.png)
 
 ## It is opinionated, not configurable
 
