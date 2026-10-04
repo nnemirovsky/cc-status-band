@@ -30,7 +30,7 @@ attention:
 
 | Shown when | Text |
 |---|---|
-| GitHub reports it mergeable and no changes are requested | `ready to merge` (review and CI are left out) |
+| GitHub reports it mergeable and no changes are requested | `ready to merge` (the review state is left out) |
 | Review required | `review required` |
 | Changes requested | `changes requested` |
 | CI passed, running, failed | `CI ✓`, `CI ●`, `CI ✗ 2 failed` |

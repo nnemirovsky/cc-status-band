@@ -399,11 +399,14 @@ export const register: Register = (on, options) => {
       if (!ready && p.state === 'OPEN') {
         if (p.reviewDecision === 'REVIEW_REQUIRED') parts.push({ text: 'review required', color: C.warn })
         if (p.reviewDecision === 'CHANGES_REQUESTED') parts.push({ text: 'changes requested', color: C.bad })
+        if (p.mergeState === 'DIRTY') parts.push({ text: 'conflicts', color: C.bad })
+        if (p.mergeState === 'BEHIND') parts.push({ text: 'behind', color: C.warn })
+      }
+      // CI shows on every open PR, ready or not, so a passing run stays visible.
+      if (p.state === 'OPEN') {
         if (p.ci === 'fail') parts.push({ text: `CI ${G.ciFail} ${p.ciFailed} failed`, color: C.bad })
         if (p.ci === 'pending') parts.push({ text: `CI ${G.ciPending}`, color: C.warn })
         if (p.ci === 'pass') parts.push({ text: `CI ${G.ciPass}`, color: C.good })
-        if (p.mergeState === 'DIRTY') parts.push({ text: 'conflicts', color: C.bad })
-        if (p.mergeState === 'BEHIND') parts.push({ text: 'behind', color: C.warn })
       }
       if (p.unresolved > 0) parts.push({ text: `${p.unresolved} unresolved`, color: C.warn })
       if (p.approvals > 0) parts.push({ text: `${p.approvals} approval${p.approvals === 1 ? '' : 's'}`, color: C.good })
