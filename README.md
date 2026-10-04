@@ -1,19 +1,10 @@
-# status-band
+# Status Band
 
-A framed status band above the Claude Code prompt, in place of a command status
-line. It shows git, the model, effort, context use and the current branch's pull
-request state, and it tidies the hint line under the prompt.
+Opinionated framed status band for Claude Code with git, model, context, and the
+branch's PR review state. It takes the place of a command status line and tidies
+the hint line under the prompt.
 
-```
-╭──────────────────────────────────────────────────────────────────────────────────────╮ [-]
-│ 𖠰 main ⎇ fix/hedge-age (+12,-3)  ✳ Opus 5.5 high 296k/30%  ⌘ ~/dev/app                 │
-│ PR #2899  review required  CI ✓  1 approval                                            │
-╰──────────────────────────────────────────────────────────────────────────────────────╯
-──────────────────────────────────────────────────────────────────────────────────────────
-❯
-──────────────────────────────────────────────────────────────────────────────────────────
-  ⏵⏵ auto mode on · ← for agents
-```
+![Status Band above the Claude Code prompt](assets/screenshot.png)
 
 ## It is opinionated, not configurable
 
@@ -80,12 +71,23 @@ them:
 /plugin install status-band@status-band
 ```
 
-Then turn off your status line, or it draws under the band. Delete the
-`statusLine` key from `~/.claude/settings.json`, or rename it to keep it for later:
+Then run the setup command once:
 
-```json
-"statusLineDisabled": { "type": "command", "command": "..." }
 ```
+/status-band-setup
+```
+
+It asks three things and changes only what you agree to, skipping what is
+already done:
+
+* whether you see a Nerd Font icon, to set `nerdFont`
+* whether to set `FORCE_HYPERLINK=1`, when it is not set (see
+  [Links that print the URL](#links-that-print-the-url)); it applies after a restart
+* whether to turn off your status line, if you have one, since it would draw under
+  the band; it is kept as `statusLineDisabled`, so renaming it back restores it
+
+It writes only `~/.claude/settings.json`, and the `nerdFont` option through
+Claude Code's own config.
 
 ## Settings
 
@@ -104,7 +106,8 @@ Set it from `/config`, or in `~/.claude/settings.json`:
 The PR number is an OSC 8 hyperlink. Claude Code decides whether your terminal
 supports those from its environment, and does not recognise every terminal
 (agterm, for one). If you see the URL printed after `PR #2899`, set
-`FORCE_HYPERLINK=1` in the `env` block of `~/.claude/settings.json`.
+`FORCE_HYPERLINK=1` in the `env` block of `~/.claude/settings.json`, or let
+`/status-band-setup` do it.
 
 ## Development
 
