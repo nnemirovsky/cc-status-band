@@ -38,6 +38,7 @@ attention:
 | Unresolved review threads, when there are any | `3 unresolved` |
 | Approvals, when there are any | `2 approvals` |
 | Draft, merged, closed | `draft`, `merged`, `closed` |
+| GitHub is still working out the PR after a push, nothing else to show | `checking` |
 
 `PR #2899` is a link to the pull request.
 
@@ -47,6 +48,8 @@ badge is removed from the hint line, together with `(shift+tab to cycle)`.
 Git and context refresh every 10 seconds, after each turn and after Bash or file
 edits. The PR row refreshes every minute, on a change of directory or branch, and
 right after a `gh pr`, `gh api`, `git push`, `git checkout` or `git switch` command.
+While checks run or GitHub has not yet worked out the merge state, it looks again
+every 15 seconds.
 
 ## What it cannot change
 

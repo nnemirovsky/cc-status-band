@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { BandCi, BandGit, BandPr, BandSnap } from '../types'
 
@@ -116,6 +116,7 @@ async function effortFallback($: EngineInterface, model: string): Promise<string
 // `cd`, a checkout, a worktree) looks the PR up again at once instead of
 // waiting for the minute timer.
 let prKey = ''
+let prRecheck: Timer | undefined
 
 async function refresh($: EngineInterface): Promise<void> {
   const [cwd, root, model, usage, home] = await Promise.all([
@@ -216,6 +217,13 @@ async function refreshPr($: EngineInterface): Promise<void> {
     mergeState: data.mergeStateStatus ?? '',
   }
   await update($, pr, () => next)
+  // Right after a push GitHub has no checks yet and reports the merge state as
+  // UNKNOWN; look again soon rather than waiting out the minute timer.
+  prRecheck?.cancel()
+  prRecheck = undefined
+  if (next.state === 'OPEN' && (next.mergeState === 'UNKNOWN' || next.ci === 'pending')) {
+    prRecheck = $.clock.after(15_000, () => void safely(refreshPr($)))
+  }
 }
 
 async function safely(work: Promise<void>): Promise<void> {
@@ -409,6 +417,7 @@ export const register: Register = (on, options) => {
       }
       if (p.unresolved > 0) parts.push({ text: `${p.unresolved} unresolved`, color: C.warn })
       if (p.approvals > 0) parts.push({ text: `${p.approvals} approval${p.approvals === 1 ? '' : 's'}`, color: C.good })
+      if (parts.length === 0 && p.state === 'OPEN' && p.mergeState === 'UNKNOWN') parts.push({ text: 'checking', color: C.grey })
       // Last, so the row reads as its verdict.
       if (ready) parts.push({ text: 'ready to merge', color: C.good })
     }
