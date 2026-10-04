@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { BandCi, BandGit, BandPr, BandSnap } from '../types'
 
@@ -116,6 +116,7 @@ async function effortFallback($: EngineInterface, model: string): Promise<string
 // `cd`, a checkout, a worktree) looks the PR up again at once instead of
 // waiting for the minute timer.
 let prKey = ''
+let prRecheck: Timer | undefined
 
 async function refresh($: EngineInterface): Promise<void> {
   const [cwd, root, model, usage, home] = await Promise.all([
@@ -216,6 +217,13 @@ async function refreshPr($: EngineInterface): Promise<void> {
     mergeState: data.mergeStateStatus ?? '',
   }
   await update($, pr, () => next)
+  // Right after a push GitHub has no checks yet and reports the merge state as
+  // UNKNOWN; look again soon rather than waiting out the minute timer.
+  prRecheck?.cancel()
+  prRecheck = undefined
+  if (next.state === 'OPEN' && (next.mergeState === 'UNKNOWN' || next.ci === 'pending')) {
+    prRecheck = $.clock.after(15_000, () => void safely(refreshPr($)))
+  }
 }
 
 async function safely(work: Promise<void>): Promise<void> {
@@ -226,10 +234,77 @@ async function safely(work: Promise<void>): Promise<void> {
   }
 }
 
+// /status-band-setup: the three things a fresh install usually needs, each
+// asked first and skipped when already done.
+const SETUP_COMMAND = 'status-band-setup'
+
+type Settings = Record<string, unknown> & { env?: Record<string, string>; statusLine?: unknown }
+
+async function readUserSettings($: EngineInterface, path: string): Promise<Settings> {
+  try {
+    return JSON.parse(await $.fs.read(path)) as Settings
+  } catch {
+    return {}
+  }
+}
+
+async function setup($: EngineInterface): Promise<string> {
+  const home = (await $.env.get('HOME')) ?? ''
+  const path = `${home}/.claude/settings.json`
+  const settings = await readUserSettings($, path)
+  const done: string[] = []
+  let isChanged = false
+
+  const glyphs = await $.ui.ask(`Do you see a pull-request icon here:  ?`, {
+    header: 'Nerd Font',
+    options: ['Yes, an icon', 'No, a box or nothing'],
+  })
+  const nerdFont = glyphs.startsWith('Yes')
+  const row = (await $.config.list()).find(r => r.key.endsWith('.nerdFont') && r.key.includes('status-band'))
+  if (row && row.value !== nerdFont) {
+    const set = await $.config.set({ key: row.key, value: nerdFont })
+    if (set.deny === undefined) done.push(`nerdFont ${nerdFont ? 'on' : 'off'}`)
+  }
+
+  const forced = settings.env?.FORCE_HYPERLINK ?? (await $.env.get('FORCE_HYPERLINK'))
+  if (forced === undefined) {
+    const terminal = (await $.env.get('TERM_PROGRAM')) ?? 'unknown'
+    const links = await $.ui.ask(
+      `Claude Code makes links clickable only in terminals it recognises (yours: ${terminal}). Turn on FORCE_HYPERLINK? Yes if your terminal supports OSC 8 links but PR numbers print their URL.`,
+      { header: 'Links', options: ['Turn it on', 'Leave it off'] },
+    )
+    if (links.startsWith('Turn')) {
+      settings.env = { ...settings.env, FORCE_HYPERLINK: '1' }
+      isChanged = true
+      done.push('FORCE_HYPERLINK=1 (applies after a restart)')
+    }
+  }
+
+  if (settings.statusLine !== undefined) {
+    const line = await $.ui.ask(
+      'Turn off your status line? It draws below the band. It is kept as statusLineDisabled, so you can rename it back.',
+      { header: 'Status line', options: ['Turn it off', 'Keep it'] },
+    )
+    if (line.startsWith('Turn')) {
+      settings.statusLineDisabled = settings.statusLine
+      delete settings.statusLine
+      isChanged = true
+      done.push('status line off (kept as statusLineDisabled)')
+    }
+  }
+
+  if (isChanged) await $.fs.write(path, `${JSON.stringify(settings, null, 2)}\n`)
+  return done.length > 0 ? `${done.join('; ')}.` : 'Nothing to change.'
+}
+
 export const register: Register = (on, options) => {
   const G = options.nerdFont === true ? NERD : PLAIN
 
   on('session.start', async ($, e, next) => {
+    await $.command.register({
+      name: SETUP_COMMAND,
+      description: 'Set up status-band: Nerd Font glyphs, terminal links, your old status line',
+    })
     void safely(refresh($))
     void safely(refreshPr($))
     $.clock.every(10_000, () => void safely(refresh($)))
@@ -244,6 +319,14 @@ export const register: Register = (on, options) => {
       if ((await read($, effort)) !== level) await update($, effort, () => level)
     }
     return yield* next(e)
+  })
+
+  on('command.run', { command: SETUP_COMMAND }, async $ => {
+    try {
+      return { text: await setup($) }
+    } catch {
+      return { text: 'Setup cancelled, nothing changed.' }
+    }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -320,18 +403,23 @@ export const register: Register = (on, options) => {
       const ready = p.state === 'OPEN' && !p.isDraft && p.mergeState === 'CLEAN' && p.reviewDecision !== 'CHANGES_REQUESTED'
       if (p.state !== 'OPEN') parts.push({ text: p.state.toLowerCase(), color: C.grey })
       else if (p.isDraft) parts.push({ text: 'draft', color: C.grey })
-      if (ready) parts.push({ text: 'ready to merge', color: C.good })
       if (!ready && p.state === 'OPEN') {
         if (p.reviewDecision === 'REVIEW_REQUIRED') parts.push({ text: 'review required', color: C.warn })
         if (p.reviewDecision === 'CHANGES_REQUESTED') parts.push({ text: 'changes requested', color: C.bad })
-        if (p.ci === 'fail') parts.push({ text: `CI ${G.ciFail} ${p.ciFailed} failed`, color: C.bad })
-        if (p.ci === 'pending') parts.push({ text: `CI ${G.ciPending}`, color: C.warn })
-        if (p.ci === 'pass') parts.push({ text: `CI ${G.ciPass}`, color: C.good })
         if (p.mergeState === 'DIRTY') parts.push({ text: 'conflicts', color: C.bad })
         if (p.mergeState === 'BEHIND') parts.push({ text: 'behind', color: C.warn })
       }
+      // CI shows on every open PR, ready or not, so a passing run stays visible.
+      if (p.state === 'OPEN') {
+        if (p.ci === 'fail') parts.push({ text: `CI ${G.ciFail} ${p.ciFailed} failed`, color: C.bad })
+        if (p.ci === 'pending') parts.push({ text: `CI ${G.ciPending}`, color: C.warn })
+        if (p.ci === 'pass') parts.push({ text: `CI ${G.ciPass}`, color: C.good })
+      }
       if (p.unresolved > 0) parts.push({ text: `${p.unresolved} unresolved`, color: C.warn })
       if (p.approvals > 0) parts.push({ text: `${p.approvals} approval${p.approvals === 1 ? '' : 's'}`, color: C.good })
+      if (parts.length === 0 && p.state === 'OPEN' && p.mergeState === 'UNKNOWN') parts.push({ text: 'checking', color: C.grey })
+      // Last, so the row reads as its verdict.
+      if (ready) parts.push({ text: 'ready to merge', color: C.good })
     }
 
     const prRow =
