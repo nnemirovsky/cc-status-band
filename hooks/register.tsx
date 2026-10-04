@@ -395,7 +395,6 @@ export const register: Register = (on, options) => {
       const ready = p.state === 'OPEN' && !p.isDraft && p.mergeState === 'CLEAN' && p.reviewDecision !== 'CHANGES_REQUESTED'
       if (p.state !== 'OPEN') parts.push({ text: p.state.toLowerCase(), color: C.grey })
       else if (p.isDraft) parts.push({ text: 'draft', color: C.grey })
-      if (ready) parts.push({ text: 'ready to merge', color: C.good })
       if (!ready && p.state === 'OPEN') {
         if (p.reviewDecision === 'REVIEW_REQUIRED') parts.push({ text: 'review required', color: C.warn })
         if (p.reviewDecision === 'CHANGES_REQUESTED') parts.push({ text: 'changes requested', color: C.bad })
@@ -410,6 +409,8 @@ export const register: Register = (on, options) => {
       }
       if (p.unresolved > 0) parts.push({ text: `${p.unresolved} unresolved`, color: C.warn })
       if (p.approvals > 0) parts.push({ text: `${p.approvals} approval${p.approvals === 1 ? '' : 's'}`, color: C.good })
+      // Last, so the row reads as its verdict.
+      if (ready) parts.push({ text: 'ready to merge', color: C.good })
     }
 
     const prRow =
