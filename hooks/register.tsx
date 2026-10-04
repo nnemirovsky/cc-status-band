@@ -30,6 +30,9 @@ const C = {
   warn: '#d7af00',
   bad: '#d70000',
   good: '#5faf00',
+  // Claude Code's own highlight of a selected footer pill.
+  selected: '#5dcdce',
+  onSelected: '#282828',
 }
 
 // What the engine puts in the hint line that the band shows instead: the
@@ -349,11 +352,34 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
-    // A rewritten hint is drawn as plain text, so its pills stop being live and
-    // a footer selection (↓ onto `1 shell`) loses its highlight. Leave the
-    // engine's line alone while the footer is selected (the hint then offers
-    // `Enter to …`) and whenever there is nothing to take out.
-    if (/\bEnter to \w/.test(e.props.hint) || !HINT_DROP_TEST.test(e.props.hint)) return next(e)
+    // Nothing to take out: the engine's own line, pills live.
+    if (!HINT_DROP_TEST.test(e.props.hint)) return next(e)
+    // A rewritten hint is drawn as plain text, so a footer selection (↓ onto
+    // `1 shell`) would lose its highlight. While the tasks pill is selected the
+    // hint ends in `Enter to view tasks`: draw the line ourselves, that pill
+    // highlighted as the engine does it. Any other selection gets the engine's
+    // line back whole.
+    const selected = e.props.hint.match(/\bEnter to view (\w+)/)?.[1]
+    if (selected !== undefined || /\bEnter to \w/.test(e.props.hint)) {
+      const parts = trimHint(e.props.hint).split(' · ')
+      const at = selected === 'tasks' ? parts.findIndex(p => /^\d+ (shells?|tasks?|agents?|background)/.test(p)) : -1
+      if (at < 0) return next(e)
+      const { Text } = $.ui.resolve(e)
+      return (
+        <Text wrap="truncate-end">
+          {parts.flatMap((part, i) => [
+            ...(i > 0 ? [<Text dimColor> · </Text>] : []),
+            i === at ? (
+              <Text backgroundColor={C.selected} color={C.onSelected}>
+                {part}
+              </Text>
+            ) : (
+              <Text dimColor>{part}</Text>
+            ),
+          ])}
+        </Text>
+      )
+    }
     const hint = trimHint(e.props.hint)
     if (hint.length > 0) return next({ ...e, props: { ...e.props, hint } })
     // Nothing left: the engine still joins its mode pill to a drawn hint with

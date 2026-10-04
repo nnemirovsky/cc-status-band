@@ -10,6 +10,28 @@ const CASES = [
 // Lines the engine keeps drawing itself, live pills and all.
 const UNTOUCHED = ['1 shell · ctrl+t to show tasks · Enter to view tasks', '← 1 agent · 1 shell · ↓ to manage']
 
+test('a selected tasks pill stays highlighted with the PR badge still gone', async ($, on) => {
+  let reached = false
+  on('ui.render', { component: 'PromptHint' }, ($, e) => {
+    reached = true
+    const { Text } = $.ui.resolve(e)
+    return <Text>{e.props.hint}</Text>
+  })
+  const ui = await $.ui.mount({
+    plugin: 'status-band',
+    surface: 'terminal',
+    component: 'PromptHint',
+    props: { isDraft: false, isWorking: false, hint: '(shift+tab to cycle) · PR #2895 · 1 shell · ctrl+t to show tasks · Enter to view tasks' },
+  })
+  expect(reached).toBe(false)
+  const line = await ui.find({ type: 'Text' })
+  const pieces = (line?.children ?? []) as { props: Record<string, unknown>; children: unknown[] }[]
+  const lit = pieces.filter(p => p.props.backgroundColor !== undefined)
+  expect(lit.map(p => p.children.join(''))).toEqual(['1 shell'])
+  expect(lit[0]?.props.backgroundColor).toBe('#5dcdce')
+  expect(await ui.find({ type: 'Text', text: /PR #/ })).toBe(undefined)
+})
+
 test('the hint line loses the cycle hint and the PR badge', async ($, on) => {
   // Stands for the engine: draws whatever hint reaches it.
   on('ui.render', { component: 'PromptHint' }, ($, e) => {
@@ -38,7 +60,7 @@ test('a footer selection and a line with nothing to take out reach the engine un
     const { Text } = $.ui.resolve(e)
     return <Text>{e.props.hint}</Text>
   })
-  for (const hint of [...UNTOUCHED, '(shift+tab to cycle) · PR #2895 · 1 shell · Enter to view tasks']) {
+  for (const hint of UNTOUCHED) {
     const ui = await $.ui.mount({
       plugin: 'status-band',
       surface: 'terminal',
