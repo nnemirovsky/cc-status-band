@@ -1,6 +1,6 @@
 {
   "name": "status-band",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Opinionated framed status band for Claude Code with git, model, context, and the branch's PR review state",
   "author": {
     "name": "Nikita Nemirovsky",

@@ -40,6 +40,7 @@ const PLAIN = { pr: 'PR', ciPass: '✓', ciPending: '●', ciFail: '✗' }
 const NERD = { pr: '\uf407', ciPass: '\uf42e', ciPending: '\uf43a', ciFail: '\uf467' }
 
 const HINT_DROP = /\(shift\+tab to cycle\)|\bPR #\d+\b|install gh for PR status/g
+const HINT_DROP_TEST = new RegExp(HINT_DROP.source)
 
 function trimHint(hint: string): string {
   return hint
@@ -348,6 +349,11 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
+    // A rewritten hint is drawn as plain text, so its pills stop being live and
+    // a footer selection (↓ onto `1 shell`) loses its highlight. Leave the
+    // engine's line alone while the footer is selected (the hint then offers
+    // `Enter to …`) and whenever there is nothing to take out.
+    if (/\bEnter to \w/.test(e.props.hint) || !HINT_DROP_TEST.test(e.props.hint)) return next(e)
     const hint = trimHint(e.props.hint)
     if (hint.length > 0) return next({ ...e, props: { ...e.props, hint } })
     // Nothing left: the engine still joins its mode pill to a drawn hint with
