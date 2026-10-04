@@ -1,0 +1,15 @@
+{
+  "name": "status-band",
+  "version": "0.1.0",
+  "description": "A framed status band above the Claude Code prompt: git, model, effort, context and the branch's PR review state, as a function-hooks mod",
+  "owner": {
+    "name": "nnemirovsky"
+  },
+  "plugins": [
+    {
+      "name": "status-band",
+      "source": "./",
+      "description": "A framed status band above the Claude Code prompt: git, model, effort, context and the branch's PR review state, as a function-hooks mod"
+    }
+  ]
+}
