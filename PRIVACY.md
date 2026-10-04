@@ -19,8 +19,13 @@ read.
 
 ## What it stores
 
-Only the last values it drew, in the session's plugin state, which Claude Code
-discards when the session ends. Nothing is written to disk.
+The band keeps only the last values it drew, in the session's plugin state, which
+Claude Code discards when the session ends.
+
+`/status-band-setup` writes to disk only when you agree to a change: it edits
+`~/.claude/settings.json` (the `FORCE_HYPERLINK` entry under `env`, and renaming
+`statusLine` to `statusLineDisabled`), and sets the `nerdFont` option through
+Claude Code's config, which stores it in the same file.
 
 ## Contact
 
