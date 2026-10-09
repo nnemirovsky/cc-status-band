@@ -466,23 +466,76 @@ export const register: Register = (on, options) => {
         </Text>
       )
 
-    // Framed like the engine's own panels: a round, dim border with a cell
-    // of padding each side.
-    return (
-      <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1}>
-        {oneLine ? (
-          <Text wrap="truncate">
-            {gitRow}  {modelRow}  {pathRow}
-          </Text>
-        ) : (
-          <Box flexDirection="column">
+    // Framed like the engine's own panels when the bottom slot has room: a
+    // round, dim border with a cell of padding each side. The slot shrinks
+    // when other things share it (the tasks list under the prompt, ctrl+t), and
+    // a band taller than `maxRows` would scroll behind an "n more" row, so it
+    // sheds what it can in order: the frame, then the path's own row (the path
+    // joins the first line, cut at the edge), then the PR row (folded onto the
+    // same single line).
+    const lines = (oneLine ? 1 : 2) + (prRow ? 1 : 0)
+    const room = e.props.maxRows
+    if (lines + 2 <= room) {
+      return (
+        <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1}>
+          {oneLine ? (
             <Text wrap="truncate">
-              {gitRow}  {modelRow}
+              {gitRow}  {modelRow}  {pathRow}
             </Text>
-            <Text wrap="truncate">{pathRow}</Text>
-          </Box>
-        )}
-        {prRow}
+          ) : (
+            <Box flexDirection="column">
+              <Text wrap="truncate">
+                {gitRow}  {modelRow}
+              </Text>
+              <Text wrap="truncate">{pathRow}</Text>
+            </Box>
+          )}
+          {prRow}
+        </Box>
+      )
+    }
+    const headLine = (
+      <Text wrap="truncate">
+        {gitRow}  {modelRow}  <Text color={C.path}>{pathLong}</Text>
+      </Text>
+    )
+    if (lines <= room && !oneLine) {
+      return (
+        <Box flexDirection="column" paddingX={1}>
+          <Text wrap="truncate">
+            {gitRow}  {modelRow}
+          </Text>
+          <Text wrap="truncate">{pathRow}</Text>
+          {prRow}
+        </Box>
+      )
+    }
+    if ((prRow ? 2 : 1) <= room) {
+      return (
+        <Box flexDirection="column" paddingX={1}>
+          {headLine}
+          {prRow}
+        </Box>
+      )
+    }
+    return (
+      <Box paddingX={1}>
+        <Text wrap="truncate">
+          {gitRow}  {modelRow}
+          {p !== null && (
+            <Text>
+              {'  '}
+              <Link href={p.url}>
+                <Text underline>{`${G.pr} #${p.number}`}</Text>
+              </Link>
+              {parts.map(part => (
+                <Text color={part.color}>{`  ${part.text}`}</Text>
+              ))}
+            </Text>
+          )}
+          {'  '}
+          <Text color={C.path}>{pathLong}</Text>
+        </Text>
       </Box>
     )
   })
