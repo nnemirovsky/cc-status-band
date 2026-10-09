@@ -44,6 +44,10 @@ attention:
 
 `PR #2899` is a link to the pull request.
 
+**When space is short** (the tasks list open under the prompt, a short terminal), the band
+drops the frame first, then puts the path on the first line, then folds everything onto one
+line, instead of scrolling behind an `n more` row.
+
 **Hint line under the prompt**: the band replaces Claude Code's own PR badge, so that
 badge is removed from the hint line, together with `(shift+tab to cycle)`.
 
