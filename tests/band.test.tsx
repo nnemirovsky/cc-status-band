@@ -31,7 +31,7 @@ async function draw($: Engine, maxRows: number) {
     plugin: 'status-band',
     surface: 'terminal',
     component: 'AbovePrompt',
-    props: { hasSurvey: false, isWorking: false, maxRows, bodyColumns: 120, scroll: { offset: 0, bodyRows: maxRows }, view: {} },
+    props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows, bodyColumns: 120, scroll: { offset: 0, bodyRows: maxRows }, view: {} },
     viewport: { columns: 125, rows: 40 },
   })
   const root = await ui.find({ type: 'Box' })
